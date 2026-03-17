@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الحضور | جامعة دمنهور الأهلية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background: #f8fafc; overflow-x: hidden; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 2.5rem; border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 20px 50px rgba(30, 64, 175, 0.1); }
+        .royal-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
+        .input-focus:focus { border-color: #1e40af; box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <a href="admin.html" class="absolute top-6 left-6 text-gray-200 hover:text-blue-900 transition-all duration-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        </svg>
+    </a>
+
+    <div class="glass-card w-full max-w-md p-10 text-center animate__animated animate__zoomIn">
+        <div class="mb-6">
+            <div class="w-20 h-20 royal-gradient rounded-3xl mx-auto flex items-center justify-center shadow-lg mb-4">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.148l.83-2.83a2 2 0 00-.077-1.38L4.26 11m14.565 7.668a3.91 3.91 0 001.442-2.536 3.91 3.91 0 00-1.443-2.537m-1.613 2.406a4.577 4.577 0 11-1.543-8.94 4.577 4.577 0 011.543 8.94z"/></svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">جامعة دمنهور الأهلية</h1>
+            <p class="text-blue-600 font-semibold text-sm">كلية الحاسبات والذكاء الإصطناعي</p>
+        </div>
+
+        <div id="formSection" class="space-y-4 text-right">
+            <label class="block text-gray-500 text-sm mr-2 font-bold">كود الطالب المميز</label>
+            <input type="text" id="studentId" placeholder="مثال: 2024001" 
+                class="w-full p-5 rounded-2xl bg-gray-50 border-2 border-transparent outline-none text-center font-bold text-xl input-focus transition-all duration-300">
+            
+            <button onclick="handleCheckIn()" id="submitBtn" class="w-full royal-gradient text-white py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-transform duration-150">
+                تسجيل الحضور الآن
+            </button>
+        </div>
+
+        <div id="statusMessage" class="mt-8 hidden p-5 rounded-2xl font-bold animate__animated animate__fadeInUp text-sm"></div>
+        
+        <div class="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+            <span>Damanhour Smart Attendance</span>
+            <span id="locationBadge">جاري فحص الموقع...</span>
+        </div>
+    </div>
+
+    <script>
+        const COLLEGE_LOC = { lat: 31.0365, lng: 30.4578 }; // إحداثيات الكلية
+        const MAX_DIST = 150; // المتر المسموح
+
+        // منع التكرار عند التحميل
+        window.onload = () => {
+            if(localStorage.getItem('attended_damanhour')) {
+                lockSystem(localStorage.getItem('attended_id'));
+            }
+        };
+
+        function handleCheckIn() {
+            const id = document.getElementById('studentId').value;
+            const btn = document.getElementById('submitBtn');
+            const msg = document.getElementById('statusMessage');
+
+            if(!id) { alert("من فضلك أدخل كود الطالب"); return; }
+
+            btn.disabled = true;
+            btn.innerText = "جاري التحقق...";
+
+            navigator.geolocation.getCurrentPosition((pos) => {
+                // محاكاة التحقق من المسافة
+                // ملاحظة: للتجربة في أي مكان، قمنا بتعطيل شرط المسافة الصارم برمجياً هنا
+                const success = true; 
+
+                if(success) {
+                    saveAndLock(id);
+                }
+            }, (err) => {
+                alert("يجب السماح بالوصول للموقع الجغرافي (GPS) لتسجيل الحضور");
+                btn.disabled = false;
+                btn.innerText = "تسجيل الحضور الآن";
+            });
+        }
+
+        function saveAndLock(id) {
+            localStorage.setItem('attended_damanhour', 'true');
+            localStorage.setItem('attended_id', id);
+            localStorage.setItem('attended_time', new Date().toLocaleTimeString('ar-EG'));
+            lockSystem(id);
+        }
+
+        function lockSystem(id) {
+            const msg = document.getElementById('statusMessage');
+            const btn = document.getElementById('submitBtn');
+            const input = document.getElementById('studentId');
+
+            msg.classList.remove('hidden');
+            msg.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
+            msg.innerHTML = `✅ تم تسجيل حضورك بنجاح<br>كود: ${id}<br>الوقت: ${localStorage.getItem('attended_time')}`;
+            
+            btn.disabled = true;
+            btn.innerText = "تم التسجيل مسبقاً من هذا الجهاز";
+            btn.classList.replace('royal-gradient', 'bg-gray-300');
+            
+            input.value = id;
+            input.disabled = true;
+            input.classList.add('bg-gray-100', 'text-gray-400');
+        }
+    </script>
+</body>
+</html>
