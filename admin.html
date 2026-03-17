@@ -2,185 +2,85 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الحضور | جامعة دمنهور الأهلية</title>
+    <title>لوحة الإدارة | كشف الحضور</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #f1f5f9; }
-        .stat-card { background: white; border-radius: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border-right: 6px solid #1e3a8a; }
-        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        .btn-action { transition: 0.3s; border-radius: 0.75rem; font-weight: 700; }
-        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .active-gps { background-color: #1e3a8a !important; color: white !important; }
-        .inactive-gps { background-color: #ef4444 !important; color: white !important; }
+        body { font-family: 'Cairo', sans-serif; }
+        @media print { .no-print { display: none; } .print-only { display: block; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid black; padding: 8px; text-align: center; } }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="bg-slate-100 p-6">
 
-    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-6">
-        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
-            <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" class="h-20 mx-auto mb-4 grayscale opacity-50">
-            <h2 class="text-xl font-black mb-6 text-slate-800 tracking-tight">إدارة شؤون الطلاب</h2>
-            <input type="password" id="adminKey" placeholder="كلمة مرور الإدارة" 
-                class="w-full p-4 border-2 border-slate-100 rounded-2xl mb-4 text-center outline-none focus:border-blue-900 transition-all">
-            <button onclick="unlockDashboard()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">دخول اللوحة</button>
-        </div>
-    </div>
-
-    <div id="mainContent" class="hidden p-4 md:p-8 max-w-6xl mx-auto">
-        
-        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-            <div class="text-center md:text-right">
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight">لوحة تحكم الحضور</h1>
-                <p class="text-slate-500 font-semibold text-sm">كلية الحاسبات والذكاء الإصطناعي - جامعة دمنهور</p>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="downloadExcel()" class="btn-action bg-green-600 text-white px-6 py-3 text-sm">تصدير كشف Excel</button>
-                <button onclick="clearAllData()" class="btn-action bg-white text-red-600 border border-red-100 px-6 py-3 text-sm">تصفير السجلات</button>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            
-            <div class="stat-card p-8 flex flex-col items-center justify-center min-h-[200px]">
-                <p class="text-slate-400 font-bold text-xs uppercase mb-2">إجمالي الحضور اليوم</p>
-                <div id="counter" class="text-7xl font-black text-blue-900">0</div>
-                <div class="mt-2 flex items-center gap-2 text-green-500 font-bold text-sm">
-                    <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
-                    تحديث مباشر
-                </div>
-            </div>
-
-            <div class="lg:col-span-2 stat-card p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div class="text-right">
-                    <h3 class="font-black text-xl text-slate-800 mb-1">نطاق الحضور الجغرافي (GPS)</h3>
-                    <p class="text-slate-400 text-sm font-semibold max-w-md line-height-relaxed">
-                        عند التفعيل، لن يُسمح للطالب بتسجيل الحضور إلا من داخل حرم الجامعة فقط.
-                    </p>
-                </div>
-                <div class="flex bg-slate-100 p-2 rounded-2xl w-full md:w-auto">
-                    <button id="btnGpsOn" onclick="toggleGPS(true)" class="flex-1 md:flex-none px-8 py-3 rounded-xl font-bold transition-all text-sm">تفعيل الحماية</button>
-                    <button id="btnGpsOff" onclick="toggleGPS(false)" class="flex-1 md:flex-none px-8 py-3 rounded-xl font-bold transition-all text-sm">إيقاف (فتح للكل)</button>
-                </div>
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-6 no-print">
+            <h1 class="text-2xl font-black text-slate-800">كشف حضور الطلاب المباشر</h1>
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">🖨️ طباعة الكشف</button>
+                <button onclick="exportExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold">📊 تصدير Excel</button>
+                <button onclick="resetSystem()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm">تصفير الكشف</button>
             </div>
         </div>
 
-        <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-            <table class="w-full text-right border-collapse">
-                <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-black border-b border-slate-100">
-                    <tr>
-                        <th class="p-6">اسم الطالب</th>
-                        <th class="p-6">الرقم الجامعي</th>
-                        <th class="p-6 text-center">الوقت</th>
-                        <th class="p-6 text-center">التاريخ</th>
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border">
+            <table class="w-full text-center">
+                <thead class="bg-[#6d28d9] text-white"> <tr>
+                        <th class="p-4 border-l border-white/20 text-sm">Timestamp</th>
+                        <th class="p-4 border-l border-white/20">الاسم</th>
+                        <th class="p-4 border-l border-white/20">الرقم القومى</th>
+                        <th class="p-4 border-l border-white/20">الموبايل</th>
+                        <th class="p-4">البرنامج</th>
                     </tr>
                 </thead>
-                <tbody id="attendanceTable" class="divide-y divide-slate-50">
-                    </tbody>
+                <tbody id="adminTable" class="text-slate-700 font-bold"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // إعدادات Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBmKtwqJeZukgwyWCK1CiQVptUd3pN2dGk",
-            authDomain: "dnu-343ee.firebaseapp.com",
-            projectId: "dnu-343ee",
-            storageBucket: "dnu-343ee.firebasestorage.app",
-            messagingSenderId: "1001058110283",
-            appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce",
-            measurementId: "G-MZJVHWTYG7"
-        };
-
+        const firebaseConfig = { /* نفس الإعدادات السابقة */ };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let attendanceList = [];
+        let currentData = [];
 
-        // التحقق من الدخول
-        function unlockDashboard() {
-            const pass = document.getElementById('adminKey').value;
-            if(pass === "132006") {
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('mainContent').classList.remove('hidden');
-                startSync();
-            } else { alert("كلمة المرور غير صحيحة"); }
-        }
-
-        // مزامنة البيانات الحية
-        function startSync() {
-            // تحديث جدول الحضور
-            db.collection("attendance").orderBy("timestamp", "desc").onSnapshot(snap => {
-                attendanceList = [];
-                const tbody = document.getElementById('attendanceTable');
-                tbody.innerHTML = "";
-                
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    attendanceList.push(data);
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="p-6 font-bold text-slate-800">${data.name || 'غير متوفر'}</td>
-                            <td class="p-6 font-bold text-blue-900 tracking-wider">${data.student_id}</td>
-                            <td class="p-6 text-center text-slate-500 font-semibold">${data.time || '---'}</td>
-                            <td class="p-6 text-center text-slate-400 text-xs font-bold">${data.date || '---'}</td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('counter').innerText = snap.size;
+        db.collection("attendance").orderBy("created_at", "desc").onSnapshot(snap => {
+            const tbody = document.getElementById('adminTable');
+            tbody.innerHTML = "";
+            currentData = [];
+            snap.forEach(doc => {
+                const d = doc.data();
+                currentData.push(d);
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-slate-50 transition">
+                        <td class="p-4 text-xs font-mono text-slate-500">${d.timestamp}</td>
+                        <td class="p-4">${d.full_name}</td>
+                        <td class="p-4 font-mono">${d.national_id}</td>
+                        <td class="p-4 font-mono">${d.mobile}</td>
+                        <td class="p-4 text-blue-700">${d.program}</td>
+                    </tr>
+                `;
             });
+        });
 
-            // تحديث حالة الـ GPS
-            db.collection("settings").doc("gps_config").onSnapshot(doc => {
-                if(doc.exists) updateGPSUI(doc.data().is_required);
-            });
-        }
-
-        // التحكم في الـ GPS
-        async function toggleGPS(status) {
-            await db.collection("settings").doc("gps_config").set({ is_required: status });
-        }
-
-        function updateGPSUI(status) {
-            const on = document.getElementById('btnGpsOn');
-            const off = document.getElementById('btnGpsOff');
-            if(status) {
-                on.className = "px-8 py-3 rounded-xl font-bold active-gps shadow-lg";
-                off.className = "px-8 py-3 rounded-xl font-bold text-slate-400 hover:text-slate-600";
-            } else {
-                off.className = "px-8 py-3 rounded-xl font-bold inactive-gps shadow-lg";
-                on.className = "px-8 py-3 rounded-xl font-bold text-slate-400 hover:text-slate-600";
-            }
-        }
-
-        // تصدير البيانات إلى Excel
-        function downloadExcel() {
-            if(attendanceList.length === 0) return alert("لا توجد بيانات لتصديرها");
-            
-            // ترتيب البيانات للأكسيل
-            const exportData = attendanceList.map(item => ({
-                "اسم الطالب": item.name,
-                "الرقم الجامعي": item.student_id,
-                "وقت الحضور": item.time,
-                "التاريخ": item.date
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(exportData);
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(currentData.map(d => ({
+                "Timestamp": d.timestamp,
+                "الاسم": d.full_name,
+                "الرقم القومى": d.national_id,
+                "الموبايل": d.mobile,
+                "البرنامج": d.program
+            })));
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-            XLSX.writeFile(wb, "كشف_حضور_دمنهور_الأهلية.xlsx");
+            XLSX.writeFile(wb, "Attendance_Report.xlsx");
         }
 
-        // مسح كل السجلات
-        function clearAllData() {
-            if(confirm("تحذير: هل أنت متأكد من مسح جميع سجلات الحضور نهائياً؟")) {
-                db.collection("attendance").get().then(snap => {
-                    snap.forEach(doc => doc.ref.delete());
-                });
+        function resetSystem() {
+            if(confirm("هل أنت متأكد من مسح جميع السجلات؟")) {
+                db.collection("attendance").get().then(s => s.forEach(doc => doc.ref.delete()));
             }
         }
     </script>
