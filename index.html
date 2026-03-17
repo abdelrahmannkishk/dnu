@@ -10,30 +10,48 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
-        .input-field { border: 1.5px solid #e2e8f0; padding: 0.8rem; border-radius: 0.75rem; width: 100%; outline: none; transition: 0.3s; text-align: right; }
-        .input-field:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
+        .main-card { background: white; border-radius: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border-top: 10px solid #1e3a8a; }
+        .input-field { border: 2px solid #f1f5f9; padding: 1rem; border-radius: 1rem; width: 100%; outline: none; transition: 0.3s; text-align: right; font-weight: 600; background: #f8fafc; }
+        .input-field:focus { border-color: #1e3a8a; background: white; box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1); }
+        .btn-submit { background: #1e3a8a; color: white; width: 100%; padding: 1.2rem; border-radius: 1.2rem; font-weight: 700; font-size: 1.1rem; transition: 0.3s; margin-top: 1rem; }
+        .btn-submit:hover { background: #172554; transform: translateY(-2px); }
+        .btn-submit:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-xl border-t-[10px] border-[#1e3a8a] text-center">
-        <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" class="h-24 mx-auto mb-4">
-        <h1 class="text-xl font-black text-slate-800 mb-6">تسجيل حضور الطلاب</h1>
 
-        <div id="formSection" class="space-y-4">
-            <input type="text" id="stuName" placeholder="الاسم رباعي" class="input-field">
-            <input type="number" id="stuId" placeholder="الرقم القومي (14 رقم)" class="input-field">
-            <input type="number" id="stuPhone" placeholder="رقم الموبايل" class="input-field">
-            <select id="stuProg" class="input-field">
-                <option value="">اختر البرنامج الدراسي</option>
-                <option value="AI - G1">ذكاء اصطناعي - G1</option>
-                <option value="AI - G2">ذكاء اصطناعي - G2</option>
-                <option value="CS - G1">علوم حاسب - G1</option>
-                <option value="CS - G2">علوم حاسب - G2</option>
-            </select>
+    <div class="main-card w-full max-w-md p-10 text-center">
+        <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" alt="University Logo" class="h-28 mx-auto mb-6">
+        
+        <h1 class="text-2xl font-black text-slate-800 mb-1">جامعة دمنهور الأهلية</h1>
+        <p class="text-slate-400 font-bold text-xs mb-8 uppercase tracking-[0.2em]">الحضور والغياب</p>
+
+        <div id="attendanceForm" class="space-y-5">
+            <div class="text-right">
+                <label class="text-xs font-black text-slate-400 mr-2 mb-2 block uppercase">اسم الطالب رباعي</label>
+                <input type="text" id="name" placeholder="أدخل اسمك الكامل" class="input-field">
+            </div>
+
+            <div class="text-right">
+                <label class="text-xs font-black text-slate-400 mr-2 mb-2 block uppercase">الرقم الجامعي</label>
+                <input type="number" id="sid" placeholder="أدخل الكود الخاص بك" class="input-field text-center font-bold">
+            </div>
+
+            <div class="text-right">
+                <label class="text-xs font-black text-slate-400 mr-2 mb-2 block uppercase">البرنامج (التخصص)</label>
+                <select id="prog" class="input-field">
+                    <option value="">اختر التخصص</option>
+                    <option value="AI - G1">AI - G1</option>
+                    <option value="AI - G2">AI - G2</option>
+                    <option value="CS - G1">CS - G1</option>
+                    <option value="CS - G2">CS - G2</option>
+                </select>
+            </div>
             
-            <button onclick="handleSubmission()" id="submitBtn" class="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition shadow-lg">إرسال البيانات</button>
+            <button onclick="submitAttendance()" id="btn" class="btn-submit">تسجيل الحضور</button>
         </div>
-        <div id="statusMsg" class="mt-6 hidden p-4 rounded-xl font-bold"></div>
+
+        <div id="status" class="mt-8 hidden p-5 rounded-2xl font-bold text-sm"></div>
     </div>
 
     <script>
@@ -48,50 +66,46 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function handleSubmission() {
-            const name = document.getElementById('stuName').value;
-            const id = document.getElementById('stuId').value;
-            const phone = document.getElementById('stuPhone').value;
-            const prog = document.getElementById('stuProg').value;
+        async function submitAttendance() {
+            const name = document.getElementById('name').value.trim();
+            const sid = document.getElementById('sid').value.trim();
+            const prog = document.getElementById('prog').value;
+            const btn = document.getElementById('btn');
 
-            if(!name || id.length !== 14 || !phone || !prog) return alert("يرجى إدخال كافة البيانات بشكل صحيح (الرقم القومي 14 رقم)");
+            if(!name || !sid || !prog) return alert("يرجى ملء جميع البيانات");
 
-            // منع التسجيل أكثر من مرة من نفس الجهاز
-            if(localStorage.getItem('attended')) {
-                return showStatus("⚠️ لقد قمت بتسجيل الحضور مسبقاً من هذا الهاتف!", "bg-amber-100 text-amber-700");
+            if(localStorage.getItem('attended_' + sid)) {
+                return msg("⚠️ سجلت حضورك بالفعل من هذا الهاتف", "bg-amber-100 text-amber-700");
             }
 
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true; btn.innerText = "جاري التحقق...";
+            btn.disabled = true; btn.innerText = "جاري الحفظ...";
 
             try {
-                // فحص هل الرقم القومي مسجل مسبقاً في السحابة؟
-                const check = await db.collection("attendance").where("national_id", "==", id).get();
+                // منع التكرار في السحابة
+                const check = await db.collection("attendance").where("student_id", "==", sid).get();
                 if(!check.empty) {
-                    btn.disabled = false; btn.innerText = "إرسال البيانات";
-                    return showStatus("❌ هذا الرقم القومي مسجل بالفعل!", "bg-red-100 text-red-700");
+                    btn.disabled = false; btn.innerText = "تسجيل الحضور";
+                    return msg("❌ هذا الكود مسجل مسبقاً اليوم", "bg-red-100 text-red-700");
                 }
 
-                // حفظ البيانات
                 await db.collection("attendance").add({
-                    timestamp: new Date().toLocaleString('en-US'),
+                    timestamp: new Date().toLocaleString('ar-EG'),
                     full_name: name,
-                    national_id: id,
-                    mobile: phone,
+                    student_id: sid,
                     program: prog,
                     created_at: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                localStorage.setItem('attended', 'true'); // قفل التسجيل على هذا الهاتف
-                showStatus("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
-                document.getElementById('formSection').classList.add('hidden');
+                localStorage.setItem('attended_' + sid, 'true');
+                msg("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
+                document.getElementById('attendanceForm').classList.add('hidden');
             } catch(e) { alert("خطأ في الاتصال"); btn.disabled = false; }
         }
 
-        function showStatus(msg, cls) {
-            const m = document.getElementById('statusMsg');
-            m.innerText = msg; m.className = "mt-6 p-4 rounded-xl font-bold " + cls;
-            m.classList.remove('hidden');
+        function msg(t, c) {
+            const s = document.getElementById('status');
+            s.innerText = t; s.className = "mt-8 p-5 rounded-2xl font-bold " + c;
+            s.classList.remove('hidden');
         }
     </script>
 </body>
