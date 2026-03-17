@@ -3,55 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الحضور | جامعة دمنهور الأهلية</title>
+    <title>تسجيل حضور الطلاب</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
-        .main-card { background: white; border-radius: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border-top: 10px solid #1e3a8a; }
-        .input-field { border: 2px solid #f1f5f9; padding: 1rem; border-radius: 1rem; width: 100%; outline: none; transition: 0.3s; text-align: right; font-weight: 600; background: #f8fafc; }
+        .main-card { background: white; border-radius: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 8px solid #1e3a8a; }
+        .input-field { border: 2px solid #f1f5f9; padding: 1rem; border-radius: 1rem; width: 100%; outline: none; transition: 0.3s; text-align: right; font-weight: 600; }
         .input-field:focus { border-color: #1e3a8a; background: white; box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1); }
-        .btn-submit { background: #1e3a8a; color: white; width: 100%; padding: 1.2rem; border-radius: 1.2rem; font-weight: 700; font-size: 1.1rem; transition: 0.3s; margin-top: 1rem; }
-        .btn-submit:hover { background: #172554; transform: translateY(-2px); }
-        .btn-submit:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="main-card w-full max-w-md p-10 text-center">
-        <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" alt="University Logo" class="h-28 mx-auto mb-6">
-        
-        <h1 class="text-2xl font-black text-slate-800 mb-1">جامعة دمنهور الأهلية</h1>
-        <p class="text-slate-400 font-bold text-xs mb-8 uppercase tracking-[0.2em]">الحضور والغياب</p>
+        <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" alt="Logo" class="h-24 mx-auto mb-6">
+        <h1 class="text-xl font-black text-slate-800 mb-6">جامعة دمنهور الأهلية</h1>
 
-        <div id="attendanceForm" class="space-y-5">
-            <div class="text-right">
-                <label class="text-xs font-black text-slate-400 mr-2 mb-2 block uppercase">اسم الطالب رباعي</label>
-                <input type="text" id="name" placeholder="أدخل اسمك الكامل" class="input-field">
-            </div>
-
-            <div class="text-right">
-                <label class="text-xs font-black text-slate-400 mr-2 mb-2 block uppercase">الرقم الجامعي</label>
-                <input type="number" id="sid" placeholder="أدخل الكود الخاص بك" class="input-field text-center font-bold">
-            </div>
-
-            <div class="text-right">
-                <label class="text-xs font-black text-slate-400 mr-2 mb-2 block uppercase">البرنامج (التخصص)</label>
-                <select id="prog" class="input-field">
-                    <option value="">اختر التخصص</option>
-                    <option value="AI - G1">AI - G1</option>
-                    <option value="AI - G2">AI - G2</option>
-                    <option value="CS - G1">CS - G1</option>
-                    <option value="CS - G2">CS - G2</option>
-                </select>
-            </div>
-            
-            <button onclick="submitAttendance()" id="btn" class="btn-submit">تسجيل الحضور</button>
+        <div id="formSection" class="space-y-5">
+            <input type="text" id="stuName" placeholder="الاسم رباعي" class="input-field">
+            <input type="number" id="stuId" placeholder="الرقم الجامعي" class="input-field text-center font-bold">
+            <select id="stuProg" class="input-field">
+                <option value="">اختر التخصص</option>
+                <option value="AI-G1">AI-G1</option>
+                <option value="AI-G2">AI-G2</option>
+                <option value="CS-G1">CS-G1</option>
+                <option value="CS-G2">CS-G2</option>
+            </select>
+            <button onclick="handleSubmission()" id="submitBtn" class="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-900 transition">تسجيل الحضور الآن</button>
         </div>
-
-        <div id="status" class="mt-8 hidden p-5 rounded-2xl font-bold text-sm"></div>
+        <div id="statusMsg" class="mt-8 hidden p-5 rounded-2xl font-bold text-sm"></div>
     </div>
 
     <script>
@@ -66,46 +48,80 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function submitAttendance() {
-            const name = document.getElementById('name').value.trim();
-            const sid = document.getElementById('sid').value.trim();
-            const prog = document.getElementById('prog').value;
-            const btn = document.getElementById('btn');
+        const COLLEGE_LOC = { lat: 31.0416, lng: 30.4655 }; 
+        const RADIUS = 250; 
 
-            if(!name || !sid || !prog) return alert("يرجى ملء جميع البيانات");
+        async function handleSubmission() {
+            const name = document.getElementById('stuName').value.trim();
+            const id = document.getElementById('stuId').value.trim();
+            const prog = document.getElementById('stuProg').value;
+            const btn = document.getElementById('submitBtn');
 
-            if(localStorage.getItem('attended_' + sid)) {
-                return msg("⚠️ سجلت حضورك بالفعل من هذا الهاتف", "bg-amber-100 text-amber-700");
+            if(!name || !id || !prog) return alert("يرجى إكمال البيانات");
+
+            // منع التسجيل أكثر من مرة من نفس الجهاز نهائياً
+            if(localStorage.getItem('device_locked')) {
+                return showStatus("⚠️ عذراً، تم تسجيل حضور مسبق من هذا الجهاز. لا يمكن التسجيل لمرة أخرى.", "bg-amber-100 text-amber-700");
             }
 
-            btn.disabled = true; btn.innerText = "جاري الحفظ...";
+            btn.disabled = true; btn.innerText = "جاري التحقق...";
 
             try {
-                // منع التكرار في السحابة
-                const check = await db.collection("attendance").where("student_id", "==", sid).get();
+                // منع تكرار الرقم الجامعي في السحابة
+                const check = await db.collection("attendance").where("student_id", "==", id).get();
                 if(!check.empty) {
-                    btn.disabled = false; btn.innerText = "تسجيل الحضور";
-                    return msg("❌ هذا الكود مسجل مسبقاً اليوم", "bg-red-100 text-red-700");
+                    btn.disabled = false; btn.innerText = "تسجيل الحضور الآن";
+                    return showStatus("❌ هذا الرقم الجامعي مسجل مسبقاً!", "bg-red-100 text-red-700");
                 }
 
-                await db.collection("attendance").add({
-                    timestamp: new Date().toLocaleString('ar-EG'),
-                    full_name: name,
-                    student_id: sid,
-                    program: prog,
-                    created_at: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                // فحص حالة زر الموقع من الأدمن
+                const settings = await db.collection("settings").doc("gps_config").get();
+                const isGpsRequired = settings.exists ? settings.data().is_required : true;
 
-                localStorage.setItem('attended_' + sid, 'true');
-                msg("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
-                document.getElementById('attendanceForm').classList.add('hidden');
-            } catch(e) { alert("خطأ في الاتصال"); btn.disabled = false; }
+                if (!isGpsRequired) {
+                    saveFinalData(name, id, prog);
+                } else {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        const dist = calcDist(pos.coords.latitude, pos.coords.longitude, COLLEGE_LOC.lat, COLLEGE_LOC.lng);
+                        if(dist <= RADIUS) {
+                            saveFinalData(name, id, prog);
+                        } else {
+                            alert("يجب أن تكون داخل الجامعة للتسجيل");
+                            btn.disabled = false; btn.innerText = "تسجيل الحضور الآن";
+                        }
+                    }, () => {
+                        alert("يرجى تفعيل الـ GPS");
+                        btn.disabled = false; btn.innerText = "تسجيل الحضور الآن";
+                    }, { enableHighAccuracy: true });
+                }
+            } catch(e) { btn.disabled = false; }
         }
 
-        function msg(t, c) {
-            const s = document.getElementById('status');
-            s.innerText = t; s.className = "mt-8 p-5 rounded-2xl font-bold " + c;
-            s.classList.remove('hidden');
+        async function saveFinalData(name, id, prog) {
+            await db.collection("attendance").add({
+                timestamp: new Date().toLocaleString('ar-EG'),
+                full_name: name,
+                student_id: id,
+                program: prog,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            localStorage.setItem('device_locked', 'true'); // قفل الجهاز
+            showStatus("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
+            document.getElementById('formSection').classList.add('hidden');
+        }
+
+        function showStatus(msg, cls) {
+            const m = document.getElementById('statusMsg');
+            m.innerText = msg; m.className = "mt-8 p-5 rounded-2xl font-bold " + cls;
+            m.classList.remove('hidden');
+        }
+
+        function calcDist(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
     </script>
 </body>
