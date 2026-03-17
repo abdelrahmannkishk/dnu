@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; user-select: none; }
         .main-card { background: white; border-radius: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 8px solid #1e3a8a; }
         .input-field { border: 2px solid #f1f5f9; padding: 1rem; border-radius: 1rem; width: 100%; outline: none; transition: 0.3s; text-align: right; font-weight: 600; }
         .input-field:focus { border-color: #1e3a8a; background: white; box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1); }
@@ -31,13 +31,20 @@
                 <option value="CS-G1">CS-G1</option>
                 <option value="CS-G2">CS-G2</option>
             </select>
-            <button onclick="handleSubmission()" id="submitBtn" class="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-900 transition">تسجيل الحضور الآن</button>
+            <button onclick="_0x5a2b1c()" id="submitBtn" class="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-900 transition">تسجيل الحضور الآن</button>
         </div>
         <div id="statusMsg" class="mt-8 hidden p-5 rounded-2xl font-bold text-sm"></div>
     </div>
 
     <script>
-        const firebaseConfig = {
+        // منع الفحص واليمين
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = e => {
+            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode == 85)) return false;
+        };
+
+        // إعدادات مخفية
+        const _0x4f21 = {
             apiKey: "AIzaSyBmKtwqJeZukgwyWCK1CiQVptUd3pN2dGk",
             authDomain: "dnu-343ee.firebaseapp.com",
             projectId: "dnu-343ee",
@@ -45,83 +52,79 @@
             messagingSenderId: "1001058110283",
             appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        firebase.initializeApp(_0x4f21);
+        const _0xdb = firebase.firestore();
 
-        const COLLEGE_LOC = { lat: 31.0416, lng: 30.4655 }; 
-        const RADIUS = 250; 
+        const _0xLOC = { _0xla: 31.0416, _0xlo: 30.4655 }; 
+        const _0xRAD = 250;
 
-        async function handleSubmission() {
-            const name = document.getElementById('stuName').value.trim();
-            const id = document.getElementById('stuId').value.trim();
-            const prog = document.getElementById('stuProg').value;
-            const btn = document.getElementById('submitBtn');
+        async function _0x5a2b1c() {
+            const _0xn = document.getElementById('stuName').value.trim();
+            const _0xi = document.getElementById('stuId').value.trim();
+            const _0xp = document.getElementById('stuProg').value;
+            const _0xb = document.getElementById('submitBtn');
 
-            if(!name || !id || !prog) return alert("يرجى إكمال البيانات");
+            if(!_0xn || !_0xi || !_0xp) return alert("يرجى إكمال البيانات");
 
-            // منع التسجيل أكثر من مرة من نفس الجهاز نهائياً
             if(localStorage.getItem('device_locked')) {
-                return showStatus("⚠️ عذراً، تم تسجيل حضور مسبق من هذا الجهاز. لا يمكن التسجيل لمرة أخرى.", "bg-amber-100 text-amber-700");
+                return _0x9e1a("⚠️ عذراً، تم تسجيل حضور مسبق من هذا الجهاز.", "bg-amber-100 text-amber-700");
             }
 
-            btn.disabled = true; btn.innerText = "جاري التحقق...";
+            _0xb.disabled = true; _0xb.innerText = "جاري التحقق...";
 
             try {
-                // منع تكرار الرقم الجامعي في السحابة
-                const check = await db.collection("attendance").where("student_id", "==", id).get();
-                if(!check.empty) {
-                    btn.disabled = false; btn.innerText = "تسجيل الحضور الآن";
-                    return showStatus("❌ هذا الرقم الجامعي مسجل مسبقاً!", "bg-red-100 text-red-700");
+                const _0xch = await _0xdb.collection("attendance").where("student_id", "==", _0xi).get();
+                if(!_0xch.empty) {
+                    _0xb.disabled = false; _0xb.innerText = "تسجيل الحضور الآن";
+                    return _0x9e1a("❌ هذا الرقم الجامعي مسجل مسبقاً!", "bg-red-100 text-red-700");
                 }
 
-                // فحص حالة زر الموقع من الأدمن
-                const settings = await db.collection("settings").doc("gps_config").get();
-                const isGpsRequired = settings.exists ? settings.data().is_required : true;
+                const _0xst = await _0xdb.collection("settings").doc("gps_config").get();
+                const _0xreq = _0xst.exists ? _0xst.data().is_required : true;
 
-                if (!isGpsRequired) {
-                    saveFinalData(name, id, prog);
+                if (!_0xreq) {
+                    _0xfinsave(_0xn, _0xi, _0xp);
                 } else {
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        const dist = calcDist(pos.coords.latitude, pos.coords.longitude, COLLEGE_LOC.lat, COLLEGE_LOC.lng);
-                        if(dist <= RADIUS) {
-                            saveFinalData(name, id, prog);
+                    navigator.geolocation.getCurrentPosition((p) => {
+                        const _0xd = _0xcalc(p.coords.latitude, p.coords.longitude, _0xLOC._0xla, _0xLOC._0xlo);
+                        if(_0xd <= _0xRAD) {
+                            _0xfinsave(_0xn, _0xi, _0xp);
                         } else {
                             alert("يجب أن تكون داخل الجامعة للتسجيل");
-                            btn.disabled = false; btn.innerText = "تسجيل الحضور الآن";
+                            _0xb.disabled = false; _0xb.innerText = "تسجيل الحضور الآن";
                         }
                     }, () => {
                         alert("يرجى تفعيل الـ GPS");
-                        btn.disabled = false; btn.innerText = "تسجيل الحضور الآن";
+                        _0xb.disabled = false; _0xb.innerText = "تسجيل الحضور الآن";
                     }, { enableHighAccuracy: true });
                 }
-            } catch(e) { btn.disabled = false; }
+            } catch(e) { _0xb.disabled = false; }
         }
 
-        async function saveFinalData(name, id, prog) {
-            await db.collection("attendance").add({
+        async function _0xfinsave(_0xn, _0xi, _0xp) {
+            await _0xdb.collection("attendance").add({
                 timestamp: new Date().toLocaleString('ar-EG'),
-                full_name: name,
-                student_id: id,
-                program: prog,
+                full_name: _0xn,
+                student_id: _0xi,
+                program: _0xp,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
             });
-            localStorage.setItem('device_locked', 'true'); // قفل الجهاز
-            showStatus("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
+            localStorage.setItem('device_locked', 'true');
+            _0x9e1a("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
             document.getElementById('formSection').classList.add('hidden');
         }
 
-        function showStatus(msg, cls) {
-            const m = document.getElementById('statusMsg');
-            m.innerText = msg; m.className = "mt-8 p-5 rounded-2xl font-bold " + cls;
-            m.classList.remove('hidden');
+        function _0x9e1a(m, c) {
+            const el = document.getElementById('statusMsg');
+            el.innerText = m; el.className = "mt-8 p-5 rounded-2xl font-bold " + c;
+            el.classList.remove('hidden');
         }
 
-        function calcDist(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        function _0xcalc(l1, o1, l2, o2) {
+            const _0xR = 6371e3;
+            const _0xdla = (l2-l1) * Math.PI/180; const _0xdlo = (o2-o1) * Math.PI/180;
+            const _0xa = Math.sin(_0xdla/2)**2 + Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(_0xdlo/2)**2;
+            return _0xR * 2 * Math.atan2(Math.sqrt(_0xa), Math.sqrt(1-_0xa));
         }
     </script>
 </body>
