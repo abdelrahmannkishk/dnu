@@ -10,27 +10,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; background: #f1f5f9; }
-        @media print { .no-print { display: none; } table { width: 100% !important; border: 1px solid #000; } th, td { border: 1px solid #000 !important; } }
+        .active-gps { background: #1e3a8a !important; color: white; }
+        .inactive-gps { background: #ef4444 !important; color: white; }
     </style>
 </head>
 <body class="p-6">
-
     <div class="max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-8 no-print">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
-                <h1 class="text-2xl font-black text-slate-800">كشف حضور الطلاب المباشر</h1>
-                <p class="text-slate-500 font-bold text-sm">إجمالي الحاضرين الآن: <span id="count" class="text-blue-600">0</span></p>
+                <h1 class="text-2xl font-black text-slate-800">إدارة الحضور - كشف حي</h1>
+                <p class="font-bold text-slate-500">العدد الحالي: <span id="count" class="text-blue-600 text-xl">0</span></p>
             </div>
+            
+            <div class="flex bg-white p-2 rounded-2xl shadow-sm border">
+                <button id="gpsOn" onclick="toggleGPS(true)" class="px-4 py-2 rounded-xl text-sm font-bold transition">تفعيل GPS</button>
+                <button id="gpsOff" onclick="toggleGPS(false)" class="px-4 py-2 rounded-xl text-sm font-bold transition">إلغاء GPS</button>
+            </div>
+
             <div class="flex gap-2">
-                <button onclick="window.print()" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-md">🖨️ طباعة</button>
-                <button onclick="exportExcel()" class="bg-green-600 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-md">📊 Excel</button>
-                <button onclick="resetData()" class="bg-white text-red-600 border border-red-100 px-5 py-2 rounded-xl font-bold text-sm">حذف الكل</button>
+                <button onclick="exportExcel()" class="bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-md">تصدير Excel</button>
+                <button onclick="resetData()" class="bg-red-50 text-red-600 border border-red-100 px-6 py-2 rounded-xl font-bold">تصفير الكل</button>
             </div>
         </header>
 
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border">
             <table class="w-full text-center">
-                <thead class="bg-[#6d28d9] text-white">
+                <thead class="bg-[#6d28d9] text-white font-bold">
                     <tr>
                         <th class="p-4 border-l border-white/10">Timestamp</th>
                         <th class="p-4 border-l border-white/10">اسم الطالب</th>
@@ -38,7 +43,7 @@
                         <th class="p-4">البرنامج</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody" class="text-slate-700 font-bold"></tbody>
+                <tbody id="tableBody" class="text-slate-700 font-bold bg-white"></tbody>
             </table>
         </div>
     </div>
@@ -56,40 +61,37 @@
         const db = firebase.firestore();
         let list = [];
 
+        // مزامنة البيانات والـ GPS
         db.collection("attendance").orderBy("created_at", "desc").onSnapshot(snap => {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = "";
-            list = [];
+            tbody.innerHTML = ""; list = [];
             snap.forEach(doc => {
-                const d = doc.data();
-                list.push(d);
-                tbody.innerHTML += `
-                    <tr class="border-b hover:bg-slate-50">
-                        <td class="p-4 text-xs font-mono text-slate-400">${d.timestamp}</td>
-                        <td class="p-4">${d.full_name}</td>
-                        <td class="p-4 text-blue-900">${d.student_id}</td>
-                        <td class="p-4 text-purple-700">${d.program}</td>
-                    </tr>
-                `;
+                const d = doc.data(); list.push(d);
+                tbody.innerHTML += `<tr class="border-b"><td class="p-4 text-xs font-mono text-slate-400">${d.timestamp}</td><td class="p-4">${d.full_name}</td><td class="p-4 text-blue-900">${d.student_id}</td><td class="p-4 text-purple-700">${d.program}</td></tr>`;
             });
             document.getElementById('count').innerText = snap.size;
         });
 
+        db.collection("settings").doc("gps_config").onSnapshot(doc => {
+            if(doc.exists) updateGPSUI(doc.data().is_required);
+        });
+
+        async function toggleGPS(s) { await db.collection("settings").doc("gps_config").set({ is_required: s }); }
+
+        function updateGPSUI(s) {
+            const on = document.getElementById('gpsOn'); const off = document.getElementById('gpsOff');
+            on.className = s ? "px-4 py-2 rounded-xl text-sm font-bold active-gps" : "px-4 py-2 rounded-xl text-sm font-bold text-slate-400";
+            off.className = !s ? "px-4 py-2 rounded-xl text-sm font-bold inactive-gps" : "px-4 py-2 rounded-xl text-sm font-bold text-slate-400";
+        }
+
         function exportExcel() {
-            if(list.length === 0) return alert("لا توجد بيانات");
-            const ws = XLSX.utils.json_to_sheet(list.map(d => ({
-                "Timestamp": d.timestamp,
-                "اسم الطالب": d.full_name,
-                "الرقم الجامعي": d.student_id,
-                "البرنامج": d.program
-            })));
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            const ws = XLSX.utils.json_to_sheet(list.map(d => ({ "Timestamp": d.timestamp, "اسم الطالب": d.full_name, "الرقم الجامعي": d.student_id, "البرنامج": d.program })));
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
             XLSX.writeFile(wb, "Attendance_Report.xlsx");
         }
 
         function resetData() {
-            if(confirm("هل تريد مسح الكشف بالكامل؟")) {
+            if(confirm("سيتم حذف الكشف بالكامل، هل أنت متأكد؟")) {
                 db.collection("attendance").get().then(s => s.forEach(doc => doc.ref.delete()));
             }
         }
