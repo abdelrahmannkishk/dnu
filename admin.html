@@ -26,7 +26,11 @@
                 <button id="gpsOn" onclick="toggleGPS(true)" class="px-4 py-2 rounded-xl text-sm font-bold transition">تفعيل GPS</button>
                 <button id="gpsOff" onclick="toggleGPS(false)" class="px-4 py-2 rounded-xl text-sm font-bold transition">إلغاء GPS</button>
             </div>
-
+            <div>
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition no-print">
+    🖨️ طباعة الكشف
+            </button>
+             </div>
             <div class="flex gap-2">
                 <button onclick="exportExcel()" class="bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-md">تصدير Excel</button>
                 <button onclick="resetData()" class="bg-red-50 text-red-600 border border-red-100 px-6 py-2 rounded-xl font-bold">تصفير الكل</button>
