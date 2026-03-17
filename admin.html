@@ -9,34 +9,45 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; user-select: none; }
         .active-gps { background: #1e3a8a !important; color: white; }
         .inactive-gps { background: #ef4444 !important; color: white; }
+        #adminContent { display: none; }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
 <body class="p-6">
-    <div class="max-w-6xl mx-auto">
+
+    <div id="loginSection" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-black text-slate-800">تسجيل دخول الإدارة</h2>
+            </div>
+            <div class="space-y-4">
+                <input type="email" id="u_mail" class="w-full px-4 py-3 rounded-xl border" placeholder="البريد الإلكتروني">
+                <input type="password" id="u_pass" class="w-full px-4 py-3 rounded-xl border" placeholder="كلمة المرور">
+                <button id="l_btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg">دخول</button>
+                <p id="e_msg" class="text-red-500 text-center text-sm font-bold hidden">خطأ في البيانات!</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminContent" class="max-w-6xl mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
                 <h1 class="text-2xl font-black text-slate-800">إدارة الحضور - كشف حي</h1>
                 <p class="font-bold text-slate-500">العدد الحالي: <span id="count" class="text-blue-600 text-xl">0</span></p>
             </div>
-            
             <div class="flex bg-white p-2 rounded-2xl shadow-sm border">
-                <button id="gpsOn" onclick="toggleGPS(true)" class="px-4 py-2 rounded-xl text-sm font-bold transition">تفعيل GPS</button>
-                <button id="gpsOff" onclick="toggleGPS(false)" class="px-4 py-2 rounded-xl text-sm font-bold transition">إلغاء GPS</button>
+                <button id="gpsOn" class="px-4 py-2 rounded-xl text-sm font-bold transition">تفعيل GPS</button>
+                <button id="gpsOff" class="px-4 py-2 rounded-xl text-sm font-bold transition">إلغاء GPS</button>
             </div>
-            <div>
-            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition no-print">
-    🖨️ طباعة الكشف
-            </button>
-             </div>
             <div class="flex gap-2">
-                <button onclick="exportExcel()" class="bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-md">تصدير Excel</button>
-                <button onclick="resetData()" class="bg-red-50 text-red-600 border border-red-100 px-6 py-2 rounded-xl font-bold">تصفير الكل</button>
+                <button onclick="window.print()" class="bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm no-print">🖨️ طباعة</button>
+                <button id="ex_btn" class="bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-md">تصدير Excel</button>
+                <button id="rs_btn" class="bg-red-50 text-red-600 border border-red-100 px-6 py-2 rounded-xl font-bold">تصفير الكل</button>
             </div>
         </header>
-
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border">
             <table class="w-full text-center">
                 <thead class="bg-[#6d28d9] text-white font-bold">
@@ -53,7 +64,16 @@
     </div>
 
     <script>
-        const firebaseConfig = {
+        // منع اليمين والاختصارات
+        document.oncontextmenu = () => false;
+        document.onkeydown = e => {
+            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode == 85)) return false;
+        };
+
+        // الكود المشفر (المحمي) لعمليات الدخول والبيانات
+        (function(_0x1a2b,_0x3c4d){const _0x5e6f=function(_0x7a8b){while(--_0x7a8b){_0x1a2b['push'](_0x1a2b['shift']());}};_0x5e6f(++_0x3c4d);}(['attendance','student_id','\x61\x64\x6d\x69\x6e\x40\x64\x6e\x75\x2e\x65\x64\x75\x2e\x65\x67','\x31\x33\x32\x30\x30\x36','full_name','timestamp','program','gps_config','settings','is_required'],0x1a4));
+        
+        const _config = {
             apiKey: "AIzaSyBmKtwqJeZukgwyWCK1CiQVptUd3pN2dGk",
             authDomain: "dnu-343ee.firebaseapp.com",
             projectId: "dnu-343ee",
@@ -61,44 +81,54 @@
             messagingSenderId: "1001058110283",
             appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        let list = [];
+        firebase.initializeApp(_config);
+        const _db = firebase.firestore();
+        let _list = [];
 
-        // مزامنة البيانات والـ GPS
-        db.collection("attendance").orderBy("created_at", "desc").onSnapshot(snap => {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ""; list = [];
-            snap.forEach(doc => {
-                const d = doc.data(); list.push(d);
-                tbody.innerHTML += `<tr class="border-b"><td class="p-4 text-xs font-mono text-slate-400">${d.timestamp}</td><td class="p-4">${d.full_name}</td><td class="p-4 text-blue-900">${d.student_id}</td><td class="p-4 text-purple-700">${d.program}</td></tr>`;
-            });
-            document.getElementById('count').innerText = snap.size;
-        });
-
-        db.collection("settings").doc("gps_config").onSnapshot(doc => {
-            if(doc.exists) updateGPSUI(doc.data().is_required);
-        });
-
-        async function toggleGPS(s) { await db.collection("settings").doc("gps_config").set({ is_required: s }); }
-
-        function updateGPSUI(s) {
-            const on = document.getElementById('gpsOn'); const off = document.getElementById('gpsOff');
-            on.className = s ? "px-4 py-2 rounded-xl text-sm font-bold active-gps" : "px-4 py-2 rounded-xl text-sm font-bold text-slate-400";
-            off.className = !s ? "px-4 py-2 rounded-xl text-sm font-bold inactive-gps" : "px-4 py-2 rounded-xl text-sm font-bold text-slate-400";
-        }
-
-        function exportExcel() {
-            const ws = XLSX.utils.json_to_sheet(list.map(d => ({ "Timestamp": d.timestamp, "اسم الطالب": d.full_name, "الرقم الجامعي": d.student_id, "البرنامج": d.program })));
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-            XLSX.writeFile(wb, "Attendance_Report.xlsx");
-        }
-
-        function resetData() {
-            if(confirm("سيتم حذف الكشف بالكامل، هل أنت متأكد؟")) {
-                db.collection("attendance").get().then(s => s.forEach(doc => doc.ref.delete()));
+        document.getElementById('l_btn').onclick = function() {
+            const m = document.getElementById('u_mail').value;
+            const p = document.getElementById('u_pass').value;
+            // التحقق من القيم المشفرة (الإيميل والباسورد)
+            if (m === "\x61\x64\x6d\x69\x6e\x40\x64\x6e\x75\x2e\x65\x64\x75\x2e\x65\x67" && p === "\x31\x33\x32\x30\x30\x36") {
+                document.getElementById('loginSection').remove();
+                document.getElementById('adminContent').style.display = 'block';
+                _initData();
+            } else {
+                document.getElementById('e_msg').classList.remove('hidden');
             }
+        };
+
+        function _initData() {
+            _db.collection("attendance").orderBy("created_at", "desc").onSnapshot(s => {
+                const b = document.getElementById('tableBody');
+                b.innerHTML = ""; _list = [];
+                s.forEach(doc => {
+                    const d = doc.data(); _list.push(d);
+                    b.innerHTML += `<tr class="border-b"><td class="p-4 text-xs text-slate-400">${d.timestamp}</td><td class="p-4">${d.full_name}</td><td class="p-4 text-blue-900">${d.student_id}</td><td class="p-4 text-purple-700">${d.program}</td></tr>`;
+                });
+                document.getElementById('count').innerText = s.size;
+            });
+            _db.collection("settings").doc("gps_config").onSnapshot(d => { if(d.exists) _upUI(d.data().is_required); });
         }
+
+        async function _tgGPS(v) { await _db.collection("settings").doc("gps_config").set({ is_required: v }); }
+        document.getElementById('gpsOn').onclick = () => _tgGPS(true);
+        document.getElementById('gpsOff').onclick = () => _tgGPS(false);
+
+        function _upUI(s) {
+            document.getElementById('gpsOn').className = s ? "px-4 py-2 rounded-xl text-sm font-bold active-gps" : "px-4 py-2 rounded-xl text-sm font-bold text-slate-400";
+            document.getElementById('gpsOff').className = !s ? "px-4 py-2 rounded-xl text-sm font-bold inactive-gps" : "px-4 py-2 rounded-xl text-sm font-bold text-slate-400";
+        }
+
+        document.getElementById('ex_btn').onclick = function() {
+            const ws = XLSX.utils.json_to_sheet(_list.map(x => ({ "الاسم": x.full_name, "ID": x.student_id, "البرنامج": x.program, "الوقت": x.timestamp })));
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, "Report.xlsx");
+        };
+
+        document.getElementById('rs_btn').onclick = function() {
+            if(confirm("هل أنت متأكد؟")) _db.collection("attendance").get().then(s => s.forEach(d => d.ref.delete()));
+        };
     </script>
 </body>
 </html>
