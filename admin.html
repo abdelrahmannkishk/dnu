@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة | جامعة دمنهور</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-['Cairo']">
+
+    <div id="loginOverlay" class="fixed inset-0 bg-[#0f172a] z-[100] flex items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold mb-6 text-slate-800">نظام الإدارة الآمن</h2>
+            <input type="password" id="adminPass" placeholder="كلمة المرور" class="w-full p-4 border-2 rounded-2xl mb-4 text-center outline-none focus:border-blue-600 transition-all">
+            <button onclick="checkAdmin()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold hover:bg-blue-800 transition-all">دخول النظام</button>
+        </div>
+    </div>
+
+    <div id="adminPanel" class="hidden p-4 md:p-10 max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 leading-tight text-center md:text-right">لوحة التحكم في الحضور</h1>
+                <p class="text-slate-500 font-semibold text-center md:text-right italic">كلية الحاسبات والذكاء الإصطناعي والروبوتات</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportData()" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700">تصدير Excel</button>
+                <button onclick="resetAll()" class="bg-red-100 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-200">تصفير الحضور</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border-b-4 border-blue-600">
+                <p class="text-slate-400 font-bold mb-1">الحضور الحالي</p>
+                <h3 class="text-5xl font-black text-slate-900" id="totalCount">0</h3>
+            </div>
+            <div class="bg-blue-900 p-8 rounded-[2rem] shadow-xl text-white md:col-span-2 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold mb-2">إدارة البيانات</h3>
+                    <p class="text-blue-200 text-sm">يمكنك رفع ملفات الطلاب وتحديث قاعدة البيانات</p>
+                </div>
+                <button class="bg-white text-blue-900 px-6 py-3 rounded-xl font-bold">رفع كشف جديد</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b">
+                        <th class="p-6 text-slate-500 font-bold">اسم الطالب</th>
+                        <th class="p-6 text-slate-500 font-bold">كود الطالب</th>
+                        <th class="p-6 text-slate-500 font-bold text-center">التوقيت</th>
+                        <th class="p-6 text-slate-500 font-bold text-center">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody" class="divide-y divide-slate-50 text-slate-700">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // التحقق من الإدارة
+        function checkAdmin() {
+            if(document.getElementById('adminPass').value === "132006") {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+                loadData();
+            } else { alert("عفواً، كلمة المرور خاطئة"); }
+        }
+
+        // تحميل بيانات تجريبية (لأننا نعمل بدون سيرفر)
+        function loadData() {
+            const table = document.getElementById('tableBody');
+            const data = [
+                {name: "أحمد محمد محمود", id: "2024010", time: "09:30 ص", status: "داخل النطاق"},
+                {name: "سارة إبراهيم علي", id: "2024025", time: "09:45 ص", status: "داخل النطاق"}
+            ];
+            
+            table.innerHTML = data.map(item => `
+                <tr class="hover:bg-blue-50/50 transition-colors">
+                    <td class="p-6 font-bold">${item.name}</td>
+                    <td class="p-6 text-slate-500">${item.id}</td>
+                    <td class="p-6 text-center text-slate-400">${item.time}</td>
+                    <td class="p-6 text-center text-green-600 font-bold"><span class="bg-green-50 px-3 py-1 rounded-full text-xs">${item.status}</span></td>
+                </tr>
+            `).join('');
+            document.getElementById('totalCount').innerText = data.length;
+        }
+
+        function exportData() {
+            alert("سيتم تصدير كشف الحضور بصيغة Excel...");
+            // منطق تصدير XLSX هنا
+        }
+
+        function resetAll() {
+            if(confirm("هل أنت متأكد من مسح جميع بيانات الحضور وتصفير الجهاز؟")) {
+                localStorage.clear();
+                alert("تم التصفير بنجاح");
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
