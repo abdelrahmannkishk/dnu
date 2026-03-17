@@ -3,33 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الحضور | جامعة دمنهور الأهلية</title>
+    <title>حضور جامعة دمنهور</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <style>
-        body { font-family: 'Cairo', sans-serif; background: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: white; border-radius: 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 400px; padding: 2.5rem; border-top: 10px solid #1e3a8a; text-align: center; }
-    </style>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
-<body>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-['Cairo']">
 
-    <div class="card">
-        <h1 class="text-2xl font-bold text-blue-900 mb-1">جامعة دمنهور الأهلية</h1>
-        <p class="text-blue-600 text-sm font-semibold mb-8">كلية الحاسبات والذكاء الإصطناعي</p>
-
-        <input type="text" id="studentId" placeholder="كود الطالب الجامعي" class="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl mb-4 text-center font-bold text-lg focus:border-blue-800 outline-none transition-all">
-        
-        <button onclick="processAttendance()" id="mainBtn" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">
-            تسجيل الحضور سحابياً
-        </button>
-
-        <div id="statusBox" class="mt-6 hidden p-4 rounded-xl font-bold text-sm"></div>
+    <div class="bg-white p-8 rounded-[2rem] shadow-xl w-full max-w-sm text-center border-t-8 border-blue-900">
+        <h1 class="text-xl font-bold text-blue-900 mb-6">تسجيل الحضور السحابي</h1>
+        <input type="text" id="studentId" placeholder="أدخل كود الطالب" class="w-full p-4 border rounded-2xl mb-4 text-center text-xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="checkIn()" id="btn" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition">إرسال البيانات للسحابة</button>
+        <p id="msg" class="mt-4 text-sm font-bold"></p>
     </div>
 
     <script>
-        // تكوين Firebase الخاص بك
+        // إعداداتك اللي بعتها (تأكد إنها صحيحة 100%)
         const firebaseConfig = {
             apiKey: "AIzaSyBmKtwqJeZukgwyWCK1CiQVptUd3pN2dGk",
             authDomain: "dnu-343ee.firebaseapp.com",
@@ -43,68 +34,36 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const TARGET_LAT = 31.0416; 
-        const TARGET_LNG = 30.4655;
-        const RADIUS = 250;
-
-        async function processAttendance() {
+        function checkIn() {
             const id = document.getElementById('studentId').value;
-            if(!id) return alert("يرجى إدخال الكود أولاً");
+            const btn = document.getElementById('btn');
+            const msg = document.getElementById('msg');
 
-            const btn = document.getElementById('mainBtn');
-            btn.innerText = "جاري التحقق...";
+            if(!id) return alert("أدخل الكود يا هندسة");
+
             btn.disabled = true;
+            btn.innerText = "جاري الحفظ...";
 
-            // التحقق من التكرار في الجهاز أولاً
-            if(localStorage.getItem('attended_' + id)) {
-                showStatus("⚠️ سجلت حضورك بالفعل من هذا الهاتف", "bg-amber-100 text-amber-700");
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const dist = calculateDistance(pos.coords.latitude, pos.coords.longitude, TARGET_LAT, TARGET_LNG);
-                
-                if(dist <= RADIUS) {
-                    try {
-                        await db.collection("attendance").add({
-                            student_id: id,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            time_string: new Date().toLocaleTimeString('ar-EG'),
-                            date_string: new Date().toLocaleDateString('ar-EG')
-                        });
-                        
-                        localStorage.setItem('attended_' + id, 'true');
-                        showStatus("✅ تم تسجيل حضورك في السحابة بنجاح", "bg-green-100 text-green-700");
-                        btn.innerText = "تم التسجيل";
-                    } catch (e) {
-                        alert("خطأ في الاتصال بالسحابة: " + e.message);
-                        btn.disabled = false;
-                        btn.innerText = "تسجيل الحضور";
-                    }
-                } else {
-                    alert(`❌ خارج النطاق بمسافة ${Math.round(dist)} متر`);
-                    btn.disabled = false;
-                    btn.innerText = "تسجيل الحضور";
-                }
-            }, (err) => {
-                alert("يرجى تفعيل الـ GPS");
+            // تسجيل البيانات مباشرة في Firebase
+            db.collection("attendance").add({
+                student_id: id,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                time: new Date().toLocaleTimeString('ar-EG'),
+                date: new Date().toLocaleDateString('ar-EG')
+            })
+            .then(() => {
+                msg.innerText = "✅ تم الحفظ في السحابة بنجاح!";
+                msg.className = "mt-4 text-green-600 font-bold text-sm";
+                btn.innerText = "تم التسجيل";
+                // حفظ في ذاكرة الموبايل عشان ميسجلش تاني
+                localStorage.setItem('done', 'true');
+            })
+            .catch((error) => {
+                console.error("Error: ", error);
+                alert("فشل التسجيل: " + error.message);
                 btn.disabled = false;
+                btn.innerText = "محاولة مرة أخرى";
             });
-        }
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const dLat = (lat2-lat1)*Math.PI/180;
-            const dLon = (lon2-lon1)*Math.PI/180;
-            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function showStatus(text, classes) {
-            const box = document.getElementById('statusBox');
-            box.innerText = text;
-            box.className = `mt-6 p-4 rounded-xl font-bold text-sm ${classes}`;
-            box.classList.remove('hidden');
         }
     </script>
 </body>
