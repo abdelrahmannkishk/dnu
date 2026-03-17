@@ -3,50 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جامعة dmn الأهلية | تسجيل الحضور</title>
+    <title>تسجيل الحضور | جامعة دمنهور الأهلية</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
-        .main-card { background: white; border-radius: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.04); position: relative; overflow: hidden; }
-        .main-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #1e3a8a, #d4af37); }
-        .input-field { border: 1.5px solid #e2e8f0; transition: 0.3s; width: 100%; padding: 1rem; border-radius: 0.75rem; outline: none; }
-        .input-field:focus { border-color: #1e3a8a; box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1); }
-        .btn-submit { background: #1e3a8a; color: white; width: 100%; padding: 1rem; border-radius: 0.75rem; font-weight: 700; font-size: 1.125rem; margin-top: 1rem; transition: 0.3s; }
-        .btn-submit:hover { background: #172554; transform: translateY(-2px); }
-        .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
-        .logo-img { max-height: 110px; margin: 0 auto 1.5rem; display: block; }
+        .input-field { border: 1.5px solid #e2e8f0; padding: 0.8rem; border-radius: 0.75rem; width: 100%; outline: none; transition: 0.3s; text-align: right; }
+        .input-field:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-xl border-t-[10px] border-[#1e3a8a] text-center">
+        <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" class="h-24 mx-auto mb-4">
+        <h1 class="text-xl font-black text-slate-800 mb-6">تسجيل حضور الطلاب</h1>
 
-    <div class="main-card w-full max-w-md p-8 text-center animate__animated animate__fadeIn">
-        <img src="https://i.postimg.cc/Y2D4WB9D/Untitled-1102202.png" alt="University Logo" class="logo-img">
-        
-        <div class="mb-8">
-            <h1 class="text-xl font-black text-slate-800">جامعة دمنهور الأهلية</h1>
-            <p class="text-slate-500 font-bold text-xs mt-1 uppercase tracking-widest">كلية الحاسبات والذكاء الإصطناعي</p>
-        </div>
-
-        <div id="formSection" class="space-y-5">
-            <div class="text-right">
-                <label class="text-xs font-black text-slate-400 mr-1 mb-2 block tracking-wide uppercase">اسم الطالب رباعي</label>
-                <input type="text" id="studentName" placeholder="أدخل اسمك بالكامل" class="input-field font-semibold text-slate-700 text-right">
-            </div>
-
-            <div class="text-right">
-                <label class="text-xs font-black text-slate-400 mr-1 mb-2 block tracking-wide uppercase">الكود الجامعي</label>
-                <input type="text" id="studentId" placeholder="أدخل الرقم الجامعي" class="input-field font-bold text-center text-lg text-slate-800 tracking-widest">
-            </div>
+        <div id="formSection" class="space-y-4">
+            <input type="text" id="stuName" placeholder="الاسم رباعي" class="input-field">
+            <input type="number" id="stuId" placeholder="الرقم القومي (14 رقم)" class="input-field">
+            <input type="number" id="stuPhone" placeholder="رقم الموبايل" class="input-field">
+            <select id="stuProg" class="input-field">
+                <option value="">اختر البرنامج الدراسي</option>
+                <option value="AI - G1">ذكاء اصطناعي - G1</option>
+                <option value="AI - G2">ذكاء اصطناعي - G2</option>
+                <option value="CS - G1">علوم حاسب - G1</option>
+                <option value="CS - G2">علوم حاسب - G2</option>
+            </select>
             
-            <button onclick="submitAttendance()" id="mainBtn" class="btn-submit">
-                إثبات حضور الطالب
-            </button>
+            <button onclick="handleSubmission()" id="submitBtn" class="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition shadow-lg">إرسال البيانات</button>
         </div>
-
-        <div id="statusBox" class="mt-8 hidden p-5 rounded-2xl font-bold text-sm"></div>
+        <div id="statusMsg" class="mt-6 hidden p-4 rounded-xl font-bold"></div>
     </div>
 
     <script>
@@ -56,92 +43,55 @@
             projectId: "dnu-343ee",
             storageBucket: "dnu-343ee.firebasestorage.app",
             messagingSenderId: "1001058110283",
-            appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce",
-            measurementId: "G-MZJVHWTYG7"
+            appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const COLLEGE_LOC = { lat: 31.0416, lng: 30.4655 }; 
-        const RADIUS = 250; 
+        async function handleSubmission() {
+            const name = document.getElementById('stuName').value;
+            const id = document.getElementById('stuId').value;
+            const phone = document.getElementById('stuPhone').value;
+            const prog = document.getElementById('stuProg').value;
 
-        async function submitAttendance() {
-            const name = document.getElementById('studentName').value.trim();
-            const id = document.getElementById('studentId').value.trim();
-            const btn = document.getElementById('mainBtn');
+            if(!name || id.length !== 14 || !phone || !prog) return alert("يرجى إدخال كافة البيانات بشكل صحيح (الرقم القومي 14 رقم)");
 
-            if(!name || !id) return alert("يرجى إكمال البيانات أولاً");
-
-            // 1. فحص التكرار محلياً (على الجهاز)
-            if(localStorage.getItem('attended_' + id)) {
-                return showStatus("⚠️ عذراً، لقد سجلت حضورك بالفعل من هذا الجهاز", "bg-amber-50 text-amber-700 border border-amber-100");
+            // منع التسجيل أكثر من مرة من نفس الجهاز
+            if(localStorage.getItem('attended')) {
+                return showStatus("⚠️ لقد قمت بتسجيل الحضور مسبقاً من هذا الهاتف!", "bg-amber-100 text-amber-700");
             }
 
-            btn.disabled = true;
-            btn.innerText = "جاري التحقق...";
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.innerText = "جاري التحقق...";
 
             try {
-                // 2. فحص التكرار في السحابة (منع تكرار الكود الجامعي)
-                const dupCheck = await db.collection("attendance").where("student_id", "==", id).get();
-                if (!dupCheck.empty) {
-                    showStatus("❌ هذا الكود الجامعي مسجل مسبقاً في كشف اليوم", "bg-red-50 text-red-700 border border-red-100");
-                    btn.disabled = false; btn.innerText = "إثبات حضور الطالب";
-                    return;
+                // فحص هل الرقم القومي مسجل مسبقاً في السحابة؟
+                const check = await db.collection("attendance").where("national_id", "==", id).get();
+                if(!check.empty) {
+                    btn.disabled = false; btn.innerText = "إرسال البيانات";
+                    return showStatus("❌ هذا الرقم القومي مسجل بالفعل!", "bg-red-100 text-red-700");
                 }
 
-                // 3. التحقق من إعدادات الـ GPS
-                const settings = await db.collection("settings").doc("gps_config").get();
-                const isGpsRequired = settings.exists ? settings.data().is_required : true;
+                // حفظ البيانات
+                await db.collection("attendance").add({
+                    timestamp: new Date().toLocaleString('en-US'),
+                    full_name: name,
+                    national_id: id,
+                    mobile: phone,
+                    program: prog,
+                    created_at: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-                if (!isGpsRequired) {
-                    saveFinalRecord(name, id);
-                } else {
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        const dist = calcDist(pos.coords.latitude, pos.coords.longitude, COLLEGE_LOC.lat, COLLEGE_LOC.lng);
-                        if(dist <= RADIUS) {
-                            saveFinalRecord(name, id);
-                        } else {
-                            alert(`عذراً، يجب التواجد داخل الجامعة. أنت بعيد بمسافة ${Math.round(dist)} متر`);
-                            btn.disabled = false; btn.innerText = "إثبات حضور الطالب";
-                        }
-                    }, () => {
-                        alert("يرجى تفعيل الـ GPS للسماح بالتسجيل");
-                        btn.disabled = false; btn.innerText = "إثبات حضور الطالب";
-                    }, { enableHighAccuracy: true });
-                }
-            } catch (e) {
-                alert("خطأ في الاتصال بالخادم");
-                btn.disabled = false;
-            }
+                localStorage.setItem('attended', 'true'); // قفل التسجيل على هذا الهاتف
+                showStatus("✅ تم تسجيل حضورك بنجاح", "bg-green-100 text-green-700");
+                document.getElementById('formSection').classList.add('hidden');
+            } catch(e) { alert("خطأ في الاتصال"); btn.disabled = false; }
         }
 
-        async function saveFinalRecord(name, id) {
-            await db.collection("attendance").add({
-                name: name,
-                student_id: id,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                time: new Date().toLocaleTimeString('ar-EG'),
-                date: new Date().toLocaleDateString('ar-EG')
-            });
-            localStorage.setItem('attended_' + id, 'true');
-            showStatus("✅ تم إثبات الحضور بنجاح.. شكراً لك", "bg-green-50 text-green-700 border border-green-100");
-            document.getElementById('formSection').classList.add('hidden');
-        }
-
-        function showStatus(msg, classes) {
-            const box = document.getElementById('statusBox');
-            box.innerText = msg;
-            box.className = `mt-8 p-5 rounded-2xl font-bold text-sm ${classes}`;
-            box.classList.remove('hidden');
-        }
-
-        function calcDist(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        function showStatus(msg, cls) {
+            const m = document.getElementById('statusMsg');
+            m.innerText = msg; m.className = "mt-6 p-4 rounded-xl font-bold " + cls;
+            m.classList.remove('hidden');
         }
     </script>
 </body>
