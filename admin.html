@@ -2,75 +2,85 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة الإدارة | كشف الحضور</title>
+    <title>لوحة الإدارة | جامعة دمنهور</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; }
-        @media print { .no-print { display: none; } .print-only { display: block; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid black; padding: 8px; text-align: center; } }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; }
+        @media print { .no-print { display: none; } table { width: 100% !important; border: 1px solid #000; } th, td { border: 1px solid #000 !important; } }
     </style>
 </head>
-<body class="bg-slate-100 p-6">
+<body class="p-6">
 
     <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-6 no-print">
-            <h1 class="text-2xl font-black text-slate-800">كشف حضور الطلاب المباشر</h1>
-            <div class="flex gap-2">
-                <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">🖨️ طباعة الكشف</button>
-                <button onclick="exportExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold">📊 تصدير Excel</button>
-                <button onclick="resetSystem()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm">تصفير الكشف</button>
+        <header class="flex justify-between items-center mb-8 no-print">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800">كشف حضور الطلاب المباشر</h1>
+                <p class="text-slate-500 font-bold text-sm">إجمالي الحاضرين الآن: <span id="count" class="text-blue-600">0</span></p>
             </div>
-        </div>
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-md">🖨️ طباعة</button>
+                <button onclick="exportExcel()" class="bg-green-600 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-md">📊 Excel</button>
+                <button onclick="resetData()" class="bg-white text-red-600 border border-red-100 px-5 py-2 rounded-xl font-bold text-sm">حذف الكل</button>
+            </div>
+        </header>
 
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden border">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border">
             <table class="w-full text-center">
-                <thead class="bg-[#6d28d9] text-white"> <tr>
-                        <th class="p-4 border-l border-white/20 text-sm">Timestamp</th>
-                        <th class="p-4 border-l border-white/20">الاسم</th>
-                        <th class="p-4 border-l border-white/20">الرقم القومى</th>
-                        <th class="p-4 border-l border-white/20">الموبايل</th>
+                <thead class="bg-[#6d28d9] text-white">
+                    <tr>
+                        <th class="p-4 border-l border-white/10">Timestamp</th>
+                        <th class="p-4 border-l border-white/10">اسم الطالب</th>
+                        <th class="p-4 border-l border-white/10">الرقم الجامعي</th>
                         <th class="p-4">البرنامج</th>
                     </tr>
                 </thead>
-                <tbody id="adminTable" class="text-slate-700 font-bold"></tbody>
+                <tbody id="tableBody" class="text-slate-700 font-bold"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = { /* نفس الإعدادات السابقة */ };
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmKtwqJeZukgwyWCK1CiQVptUd3pN2dGk",
+            authDomain: "dnu-343ee.firebaseapp.com",
+            projectId: "dnu-343ee",
+            storageBucket: "dnu-343ee.firebasestorage.app",
+            messagingSenderId: "1001058110283",
+            appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce"
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let currentData = [];
+        let list = [];
 
         db.collection("attendance").orderBy("created_at", "desc").onSnapshot(snap => {
-            const tbody = document.getElementById('adminTable');
+            const tbody = document.getElementById('tableBody');
             tbody.innerHTML = "";
-            currentData = [];
+            list = [];
             snap.forEach(doc => {
                 const d = doc.data();
-                currentData.push(d);
+                list.push(d);
                 tbody.innerHTML += `
-                    <tr class="border-b hover:bg-slate-50 transition">
-                        <td class="p-4 text-xs font-mono text-slate-500">${d.timestamp}</td>
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-4 text-xs font-mono text-slate-400">${d.timestamp}</td>
                         <td class="p-4">${d.full_name}</td>
-                        <td class="p-4 font-mono">${d.national_id}</td>
-                        <td class="p-4 font-mono">${d.mobile}</td>
-                        <td class="p-4 text-blue-700">${d.program}</td>
+                        <td class="p-4 text-blue-900">${d.student_id}</td>
+                        <td class="p-4 text-purple-700">${d.program}</td>
                     </tr>
                 `;
             });
+            document.getElementById('count').innerText = snap.size;
         });
 
         function exportExcel() {
-            const ws = XLSX.utils.json_to_sheet(currentData.map(d => ({
+            if(list.length === 0) return alert("لا توجد بيانات");
+            const ws = XLSX.utils.json_to_sheet(list.map(d => ({
                 "Timestamp": d.timestamp,
-                "الاسم": d.full_name,
-                "الرقم القومى": d.national_id,
-                "الموبايل": d.mobile,
+                "اسم الطالب": d.full_name,
+                "الرقم الجامعي": d.student_id,
                 "البرنامج": d.program
             })));
             const wb = XLSX.utils.book_new();
@@ -78,8 +88,8 @@
             XLSX.writeFile(wb, "Attendance_Report.xlsx");
         }
 
-        function resetSystem() {
-            if(confirm("هل أنت متأكد من مسح جميع السجلات؟")) {
+        function resetData() {
+            if(confirm("هل تريد مسح الكشف بالكامل؟")) {
                 db.collection("attendance").get().then(s => s.forEach(doc => doc.ref.delete()));
             }
         }
