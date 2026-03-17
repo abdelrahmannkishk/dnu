@@ -3,32 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة | دمنهور</title>
+    <title>لوحة التحكم | الإدارة</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-50 p-6 font-['Cairo']">
+<body class="bg-slate-50 min-h-screen font-['Cairo'] p-6">
 
-    <div class="max-w-4xl mx-auto">
-        <div class="bg-blue-900 text-white p-8 rounded-[2rem] shadow-lg mb-8 text-center">
-            <p class="text-blue-200 font-bold mb-2">إحصائيات الحضور المباشرة</p>
-            <h1 id="count" class="text-6xl font-black">0</h1>
-            <p class="mt-2 text-sm opacity-70">طالب سجلوا الآن</p>
+    <div id="loginGate" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-6">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-black mb-6 text-slate-800 italic">نظام إدارة الحضور</h2>
+            <input type="password" id="gatePass" placeholder="كلمة المرور" class="w-full p-4 border-2 rounded-2xl mb-4 text-center outline-none focus:border-blue-600 transition-all">
+            <button onclick="login()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-800">فتح اللوحة</button>
+        </div>
+    </div>
+
+    <div id="adminApp" class="hidden max-w-6xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4 text-center md:text-right">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 leading-none">لوحة تحكم السحابة</h1>
+                <p class="text-slate-500 font-bold text-sm mt-2">متابعة حضور كلية الحاسبات لحظياً</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportData()" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition">تصدير كشف Excel</button>
+                <button onclick="resetCloud()" class="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition">تصفير الكل</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-blue-900 p-8 rounded-[2.5rem] shadow-xl text-white text-center">
+                <p class="text-blue-200 font-bold mb-1 text-xs uppercase">إجمالي الحاضرين</p>
+                <h2 id="liveCounter" class="text-6xl font-black italic">0</h2>
+            </div>
+
+            <div class="md:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h3 class="font-black text-xl text-slate-800">حماية النطاق الجغرافي (GPS)</h3>
+                    <p class="text-slate-400 text-sm font-bold">تحكم في ما إذا كان التسجيل متاحاً من أي مكان أو داخل الكلية فقط</p>
+                </div>
+                <div class="flex bg-slate-100 p-2 rounded-2xl">
+                    <button id="gpsOn" onclick="setGPS(true)" class="px-6 py-3 rounded-xl font-bold transition">تفعيل الحماية</button>
+                    <button id="gpsOff" onclick="setGPS(false)" class="px-6 py-3 rounded-xl font-bold transition">فتح للكل</button>
+                </div>
+            </div>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-sm overflow-hidden border">
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
             <table class="w-full text-right">
-                <thead class="bg-slate-100 border-b">
+                <thead class="bg-slate-50 border-b">
                     <tr>
-                        <th class="p-4">كود الطالب</th>
-                        <th class="p-4">توقيت الحضور</th>
-                        <th class="p-4 text-center">التاريخ</th>
+                        <th class="p-6 text-slate-500 font-bold">كود الطالب</th>
+                        <th class="p-6 text-slate-500 font-bold">وقت التسجيل</th>
+                        <th class="p-6 text-slate-500 font-bold text-center text-xs">تاريخ الحضور</th>
                     </tr>
                 </thead>
-                <tbody id="rows">
-                    </tbody>
+                <tbody id="tableBody" class="divide-y divide-slate-50"></tbody>
             </table>
         </div>
     </div>
@@ -46,26 +77,74 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        let allData = [];
 
-        // تحديث حي (Real-time)
-        db.collection("attendance").orderBy("timestamp", "desc").onSnapshot((querySnapshot) => {
-            const tbody = document.getElementById('rows');
-            document.getElementById('count').innerText = querySnapshot.size;
-            tbody.innerHTML = "";
-            
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                tbody.innerHTML += `
-                    <tr class="border-b hover:bg-blue-50">
-                        <td class="p-4 font-bold text-blue-900">${data.student_id}</td>
-                        <td class="p-4 text-gray-600">${data.time || 'جاري التحميل...'}</td>
-                        <td class="p-4 text-center text-gray-400 text-xs">${data.date || ''}</td>
-                    </tr>
-                `;
+        function login() {
+            if(document.getElementById('gatePass').value === "132006") {
+                document.getElementById('loginGate').style.display = 'none';
+                document.getElementById('adminApp').classList.remove('hidden');
+                initRealtime();
+                initGPSStatus();
+            } else { alert("كلمة المرور خاطئة"); }
+        }
+
+        function initRealtime() {
+            db.collection("attendance").orderBy("timestamp", "desc").onSnapshot(snap => {
+                allData = [];
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = "";
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    allData.push(d);
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-blue-50/50 transition-colors">
+                            <td class="p-6 font-black text-blue-900 text-lg">${d.student_id}</td>
+                            <td class="p-6 text-slate-600 font-bold">${d.time || ''}</td>
+                            <td class="p-6 text-center text-slate-300 text-xs font-bold">${d.date || ''}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('liveCounter').innerText = snap.size;
             });
-        }, (error) => {
-            console.error("خطأ في جلب البيانات: ", error);
-        });
+        }
+
+        async function setGPS(status) {
+            await db.collection("settings").doc("gps_config").set({ is_required: status });
+            updateGPSButtons(status);
+        }
+
+        async function initGPSStatus() {
+            const doc = await db.collection("settings").doc("gps_config").get();
+            if(doc.exists) updateGPSButtons(doc.data().is_required);
+        }
+
+        function updateGPSButtons(status) {
+            const on = document.getElementById('gpsOn');
+            const off = document.getElementById('gpsOff');
+            if(status) {
+                on.className = "px-6 py-3 rounded-xl font-bold bg-blue-900 text-white shadow-md";
+                off.className = "px-6 py-3 rounded-xl font-bold text-slate-400";
+            } else {
+                off.className = "px-6 py-3 rounded-xl font-bold bg-red-600 text-white shadow-md";
+                on.className = "px-6 py-3 rounded-xl font-bold text-slate-400";
+            }
+        }
+
+        function exportData() {
+            if(allData.length === 0) return alert("لا توجد بيانات");
+            const ws = XLSX.utils.json_to_sheet(allData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "حضور الطلاب");
+            XLSX.writeFile(wb, "الحضور_جامعة_دمنهور.xlsx");
+        }
+
+        function resetCloud() {
+            if(confirm("تحذير! سيتم مسح كافة سجلات الحضور نهائياً من السحابة. هل أنت متأكد؟")) {
+                db.collection("attendance").get().then(snap => {
+                    snap.forEach(doc => doc.ref.delete());
+                });
+            }
+        }
     </script>
 </body>
 </html>
