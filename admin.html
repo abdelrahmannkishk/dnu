@@ -3,103 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة | جامعة دمنهور</title>
+    <title>لوحة الإدارة السحابية | جامعة دمنهور</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-50 min-h-screen font-['Cairo']">
+<body class="bg-slate-50 p-6 font-['Cairo']">
 
-    <div id="loginOverlay" class="fixed inset-0 bg-[#0f172a] z-[100] flex items-center justify-center p-6">
+    <div id="login" class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-50 p-6">
         <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
-            <h2 class="text-2xl font-bold mb-6 text-slate-800">نظام الإدارة الآمن</h2>
-            <input type="password" id="adminPass" placeholder="كلمة المرور" class="w-full p-4 border-2 rounded-2xl mb-4 text-center outline-none focus:border-blue-600 transition-all">
-            <button onclick="checkAdmin()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold hover:bg-blue-800 transition-all">دخول النظام</button>
+            <h2 class="text-2xl font-bold mb-6 italic">إدارة دمنهور الأهلية</h2>
+            <input type="password" id="adminPass" placeholder="كلمة المرور" class="w-full p-4 border-2 rounded-2xl mb-4 text-center outline-none">
+            <button onclick="doLogin()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold">دخول السحابة</button>
         </div>
     </div>
 
-    <div id="adminPanel" class="hidden p-4 md:p-10 max-w-6xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-slate-900 leading-tight text-center md:text-right">لوحة التحكم في الحضور</h1>
-                <p class="text-slate-500 font-semibold text-center md:text-right italic">كلية الحاسبات والذكاء الإصطناعي والروبوتات</p>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="exportData()" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700">تصدير Excel</button>
-                <button onclick="resetAll()" class="bg-red-100 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-200">تصفير الحضور</button>
-            </div>
+    <div id="main" class="hidden max-w-5xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">الحضور السحابي (Live)</h1>
+            <button onclick="exportExcel()" class="bg-green-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg">تصدير Excel 📥</button>
+        </header>
+
+        <div class="bg-white p-8 rounded-[2rem] shadow-sm mb-8 text-center border-b-8 border-blue-900">
+            <p class="text-slate-400 font-bold mb-1 uppercase text-xs">إجمالي الحاضرين الآن</p>
+            <h2 id="liveCount" class="text-6xl font-black text-blue-900 italic">0</h2>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-8 rounded-[2rem] shadow-sm border-b-4 border-blue-600">
-                <p class="text-slate-400 font-bold mb-1">الحضور الحالي</p>
-                <h3 class="text-5xl font-black text-slate-900" id="totalCount">0</h3>
-            </div>
-            <div class="bg-blue-900 p-8 rounded-[2rem] shadow-xl text-white md:col-span-2 flex items-center justify-between">
-                <div>
-                    <h3 class="text-xl font-bold mb-2">إدارة البيانات</h3>
-                    <p class="text-blue-200 text-sm">يمكنك رفع ملفات الطلاب وتحديث قاعدة البيانات</p>
-                </div>
-                <button class="bg-white text-blue-900 px-6 py-3 rounded-xl font-bold">رفع كشف جديد</button>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-            <table class="w-full text-right border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b">
-                        <th class="p-6 text-slate-500 font-bold">اسم الطالب</th>
-                        <th class="p-6 text-slate-500 font-bold">كود الطالب</th>
-                        <th class="p-6 text-slate-500 font-bold text-center">التوقيت</th>
-                        <th class="p-6 text-slate-500 font-bold text-center">الحالة</th>
+        <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden border">
+            <table class="w-full text-right">
+                <thead class="bg-slate-50 border-b">
+                    <tr>
+                        <th class="p-5">كود الطالب</th>
+                        <th class="p-5">الوقت</th>
+                        <th class="p-5 text-center">التاريخ</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody" class="divide-y divide-slate-50 text-slate-700">
-                    </tbody>
+                <tbody id="rows"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // التحقق من الإدارة
-        function checkAdmin() {
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmKtwqJeZukgwyWCK1CiQVptUd3pN2dGk",
+            authDomain: "dnu-343ee.firebaseapp.com",
+            projectId: "dnu-343ee",
+            storageBucket: "dnu-343ee.firebasestorage.app",
+            messagingSenderId: "1001058110283",
+            appId: "1:1001058110283:web:b2d16bbd496d6b7435f6ce",
+            measurementId: "G-MZJVHWTYG7"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let currentAttendance = [];
+
+        function doLogin() {
             if(document.getElementById('adminPass').value === "132006") {
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('adminPanel').classList.remove('hidden');
-                loadData();
-            } else { alert("عفواً، كلمة المرور خاطئة"); }
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('main').classList.remove('hidden');
+                startLiveUpdate();
+            } else { alert("خطأ!"); }
         }
 
-        // تحميل بيانات تجريبية (لأننا نعمل بدون سيرفر)
-        function loadData() {
-            const table = document.getElementById('tableBody');
-            const data = [
-                {name: "أحمد محمد محمود", id: "2024010", time: "09:30 ص", status: "داخل النطاق"},
-                {name: "سارة إبراهيم علي", id: "2024025", time: "09:45 ص", status: "داخل النطاق"}
-            ];
-            
-            table.innerHTML = data.map(item => `
-                <tr class="hover:bg-blue-50/50 transition-colors">
-                    <td class="p-6 font-bold">${item.name}</td>
-                    <td class="p-6 text-slate-500">${item.id}</td>
-                    <td class="p-6 text-center text-slate-400">${item.time}</td>
-                    <td class="p-6 text-center text-green-600 font-bold"><span class="bg-green-50 px-3 py-1 rounded-full text-xs">${item.status}</span></td>
-                </tr>
-            `).join('');
-            document.getElementById('totalCount').innerText = data.length;
+        // تحديث البيانات لحظياً من السحابة
+        function startLiveUpdate() {
+            db.collection("attendance").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                currentAttendance = [];
+                const tbody = document.getElementById('rows');
+                tbody.innerHTML = "";
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    currentAttendance.push(data);
+                    tbody.innerHTML += `
+                        <tr class="border-b">
+                            <td class="p-5 font-bold">${data.student_id}</td>
+                            <td class="p-5">${data.time_string}</td>
+                            <td class="p-5 text-center text-slate-400">${data.date_string}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('liveCount').innerText = snapshot.size;
+            });
         }
 
-        function exportData() {
-            alert("سيتم تصدير كشف الحضور بصيغة Excel...");
-            // منطق تصدير XLSX هنا
-        }
-
-        function resetAll() {
-            if(confirm("هل أنت متأكد من مسح جميع بيانات الحضور وتصفير الجهاز؟")) {
-                localStorage.clear();
-                alert("تم التصفير بنجاح");
-                location.reload();
-            }
+        function exportExcel() {
+            if(currentAttendance.length === 0) return alert("لا توجد بيانات");
+            const ws = XLSX.utils.json_to_sheet(currentAttendance);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            XLSX.writeFile(wb, "حضور_دمنهور_سحابي.xlsx");
         }
     </script>
 </body>
