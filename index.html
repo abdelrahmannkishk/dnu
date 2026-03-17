@@ -126,6 +126,40 @@
             const _0xa = Math.sin(_0xdla/2)**2 + Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(_0xdlo/2)**2;
             return _0xR * 2 * Math.atan2(Math.sqrt(_0xa), Math.sqrt(1-_0xa));
         }
+
+        async function handleAttendance() {
+    const lastRegistration = localStorage.getItem('last_attendance_time');
+    const currentTime = new Date().getTime();
+    const oneHour = 60 * 60 * 1000; // ساعة بالملي ثانية
+
+    // 1. التحقق من مرور ساعة
+    if (lastRegistration && (currentTime - lastRegistration < oneHour)) {
+        const remainingMinutes = Math.ceil((oneHour - (currentTime - lastRegistration)) / (60 * 1000));
+        alert(`⚠️ لقد قمت بتسجيل الحضور مسبقاً! \nيرجى الانتظار ${remainingMinutes} دقيقة للمحاولة مرة أخرى.`);
+        return; // إيقاف العملية
+    }
+
+    // 2. كود تسجيل الحضور الأصلي بتاعك (Firebase Add)
+    try {
+        // ... الكود اللي بيبعت البيانات لـ Firebase ...
+        
+        await _db.collection("attendance").add({
+            full_name: nameInput.value,
+            student_id: idInput.value,
+            program: programSelect.value,
+            timestamp: new Date().toLocaleString('ar-EG'),
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 3. حفظ وقت التسجيل الحالي في الجهاز
+        localStorage.setItem('last_attendance_time', currentTime);
+        
+        alert("✅ تم تسجيل حضورك بنجاح!");
+        
+    } catch (error) {
+        alert("حدث خطأ، حاول مرة أخرى");
+    }
+}
     </script>
 </body>
 </html>
